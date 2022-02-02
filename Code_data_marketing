@@ -1,0 +1,284 @@
+# sets up matplotlib with interactive features
+%matplotlib notebook
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+import numpy as np
+import re
+
+
+marketing_data = pd.read_csv("marketing_data.csv")
+# see all columns
+pd.set_option('display.max_columns', None)
+marketing_data.head()
+
+import warnings
+warnings.filterwarnings('ignore')
+
+marketing_data.columns
+marketing_data.info()
+marketing_data.isnull().sum()
+print(marketing_data.describe())
+
+# Clean Columns
+
+#taking dollar sign out of values and convert to float
+marketing_data['Income'] = marketing_data['Income'].replace('[\$,]', '', regex=True).astype(float)
+
+# summary stats
+marketing_data['Income'].describe()
+
+# put all columns into snake case format
+marketing_data.columns = [re.sub(r'(?<!^)(?=[A-Z])', '_', x).lower() for x in marketing_data.columns]
+
+plt.figure()
+sns.boxplot(marketing_data["income"])
+plt.show()
+
+marketing_data = marketing_data[marketing_data['income']<300000]
+
+plt.figure()
+sns.boxplot(marketing_data["income"])
+plt.show()
+
+
+marketing_data['income'].describe()
+
+marketing_data['income'] = marketing_data['income'].fillna(marketing_data['income'].mean())
+marketing_data['age'] = 2020 - marketing_data['year_birth']
+
+plt.figure()
+sns.boxplot(marketing_data["age"])
+plt.show()
+
+marketing_data["age"].describe()
+
+marketing_data = marketing_data[marketing_data["age"] < 100]
+plt.figure()
+sns.boxplot(marketing_data["age"])
+plt.show()
+
+marketing_data["age"].describe()
+
+plt.figure()
+sns.boxplot(x = marketing_data["education"], y=marketing_data["income"],
+            order=["Basic", "Graduation", "2n Cycle", "Master", "PhD"])
+plt.show()
+
+fig = plt.figure(figsize = (10,20))
+ax = fig.gca()
+marketing_data.hist(ax = ax);
+
+marketing_data.corr()
+
+plt.figure(figsize=(10,10))
+# heat matrix that shows correlation across all numerical variables
+sns.heatmap(data=marketing_data.corr(),annot=False)
+plt.tight_layout()
+plt.show()
+
+# num purchases columns list
+num_purchases_cols = ["num_deals_purchases", "num_web_purchases", "num_catalog_purchases", "num_store_purchases"]
+# keeps count of plot for subplots
+plot = 0
+fig = plt.figure(figsize=(8,8))
+# loop through number of columns to plot
+for i in range(len(num_purchases_cols)):
+    plot += 1
+    # subplot to create grid of plots
+    ax = plt.subplot(2, 2, plot)
+    # scatterplot of purchase type vs income with education
+    sns.scatterplot(x=marketing_data["income"], y= marketing_data[num_purchases_cols[i]],
+                    hue=marketing_data["education"], palette="viridis")
+    plt.title("Purchase Behavior by income")
+
+plt.tight_layout()
+plt.show()
+
+
+# num purchases columns list
+num_purchases_cols = ["num_deals_purchases", "num_web_purchases", "num_catalog_purchases", "num_store_purchases"]
+# keeps count of plot for subplots
+fig = plt.figure(figsize=(7,8))
+plot = 0
+# loop through number of columns to plot
+for i in range(len(num_purchases_cols)):
+    plot += 1
+    # set up subplots
+    ax = plt.subplot(2, 2, plot)
+    # regression plot of purchases vs. income
+    sns.regplot(x=marketing_data["income"], y= marketing_data[num_purchases_cols[i]],
+                scatter_kws={"color": "black"}, line_kws={"color": "red"})
+    plt.title("Purchase Behavior by income")
+plt.tight_layout()
+plt.show()
+
+marketing_data["total_purchases"] = marketing_data["num_deals_purchases"]+marketing_data["num_catalog_purchases"] + marketing_data["num_web_purchases"] + marketing_data["num_store_purchases"]
+plt.figure()
+# scatterplot of total_purchases vs. income
+sns.scatterplot(y=marketing_data["total_purchases"], x=marketing_data["income"],
+                hue=marketing_data['education'], palette="viridis")
+plt.title("Purchase Behavior by income")
+plt.show()
+
+plt.figure()
+# regression plot of total_purchases vs income
+sns.regplot(y=marketing_data["total_purchases"], x=marketing_data["income"],
+            scatter_kws={"color": "black"}, line_kws={"color": "red"})
+plt.show()
+
+# amounts of items list
+amounts_list = ["mnt_wines", "mnt_fruits", "mnt_meat_products", "mnt_fish_products", "mnt_sweet_products", "mnt_gold_products"]
+plot = 0
+fig = plt.figure(figsize=(8,6))
+# for loop to go through length of amounts list
+for i in range(len(amounts_list)):
+    plot += 1
+    # set up subplots
+    ax = plt.subplot(3, 2, plot)
+    # scatterplot of amount of items bought vs. income
+    sns.scatterplot(y= marketing_data[amounts_list[i]], x=marketing_data["income"])
+    plt.title("Purchase Behavior by income")
+plt.tight_layout()
+plt.show()
+
+
+amounts_list = ["mnt_wines", "mnt_fruits", "mnt_meat_products", "mnt_fish_products", "mnt_sweet_products", "mnt_gold_products"]
+axes = [None for column in amounts_list]
+plot = 0
+fig = plt.figure(figsize=(9,10))
+for i in range(len(amounts_list)):
+    plot += 1
+    ax = plt.subplot(3, 2, plot)
+    sns.scatterplot(y=np.log(marketing_data[amounts_list[i]]), x=np.log(marketing_data["income"]),
+                    hue=marketing_data["education"], palette="viridis")
+    ax.set_xlabel("Log Scaled income")
+    plt.title("Purchase Behavior by income")
+plt.tight_layout()
+plt.show()
+
+
+# dictionary used to contain dynamic variables
+variable_names = {}
+#amounts columns list
+amounts_list = ["mnt_wines", "mnt_fruits", "mnt_meat_products", "mnt_fish_products", "mnt_sweet_products", "mnt_gold_products"]
+
+for i in range(6):
+    # defining the facet grid
+    variable_names["g{0}".format(i)] = sns.FacetGrid(marketing_data, col="education", col_wrap=3)
+    # mapping the facet grid with scatterplots of amounts product vs. income
+    variable_names["g{0}".format(i)].map(sns.scatterplot, "income", amounts_list[i])
+plt.show()
+
+
+plt.figure()
+# scatterplot of total purchases vs. age
+sns.scatterplot(x=marketing_data["age"], y=marketing_data["total_purchases"])
+plt.title("Purchasing Behavior by age")
+plt.show()
+
+
+# amounts columns list
+amounts_list = ["mnt_wines", "mnt_fruits", "mnt_meat_products", "mnt_fish_products", "mnt_sweet_products", "mnt_gold_products"]
+plot = 0
+fig = plt.figure(figsize=(9,10))
+# looping through the length of the amounts columns list
+for i in range(len(amounts_list)):
+    plot += 1
+    # setting up the subplots
+    ax = plt.subplot(3, 2, plot)
+    # plotting amounts purchased vs. income
+    sns.scatterplot(y= marketing_data[amounts_list[i]], x=marketing_data["age"])
+    plt.title("Purchasing Behavior by age")
+plt.tight_layout()
+plt.show()
+
+
+# num purchases columns list
+num_purchases_cols = ["num_deals_purchases", "num_web_purchases", "num_catalog_purchases", "num_store_purchases"]
+plot = 0
+fig = plt.figure(figsize=(8,8))
+# looping through the length of the list
+for i in range(len(num_purchases_cols)):
+    plot += 1
+    # setting up the subplots
+    ax = plt.subplot(2, 2, plot)
+    # scatterplot of of num purchases vs. age
+    sns.scatterplot(x=marketing_data["age"], y= marketing_data[num_purchases_cols[i]])
+    plt.title("Purchase Behavior by age")
+
+plt.tight_layout()
+plt.show();
+
+
+# function that breaks up each age into a group
+def age_groups(age):
+    if 18 <= age <= 35 :
+        return '18 to 35'
+    elif 35 < age <= 50 :
+        return '36 to 50'
+    elif 50 < age <= 70 :
+        return '51 to 70'
+    else :
+        return '71 and Older'
+
+# applying the function to the dataframe
+marketing_data['age_group'] = marketing_data['age'].apply(age_groups)
+
+
+# plotting the age Group variable in a bar chart
+plt.figure()
+sns.countplot(marketing_data['age_group'], order=['18 to 35', '36 to 50', '51 to 70', '71 and Older'])
+plt.show()
+
+
+# new dataframe that is age and purchase amounts columns
+age_plus_amounts = marketing_data.loc[:, ('age', 'mnt_wines', 'mnt_fruits', 'mnt_meat_products', 'mnt_fish_products',
+'mnt_sweet_products', 'mnt_gold_products')]
+# breaking up the age bins
+bins = [18, 35, 50, 70, 150]
+# age group labels
+labels = ['18 to 35', '36 to 50', '51 to 70', '71 and Older']
+
+# adding age group to the new dataframe as rows
+age_plus_amounts['age_group'] = pd.cut(age_plus_amounts.age, bins=bins, labels=labels)
+age_plus_amounts = age_plus_amounts.groupby('age_group').sum().reset_index()
+
+
+print(age_plus_amounts)
+
+
+fig, ax = plt.subplots(figsize=(9, 6))
+
+col_products = [
+'mnt_wines',
+'mnt_fruits',
+'mnt_meat_products',
+'mnt_fish_products',
+'mnt_sweet_products',
+'mnt_gold_products'
+]
+
+# bar graph of amount of items bought in the store grouped by age group
+age_plus_amounts.plot(x='age_group', y=col_products, kind='bar', ax=ax,  width=0.8, edgecolor='#131313')
+plt.title("How Much Customers Buy by age Group")
+plt.ylabel("Total Products Purchased")
+plt.tight_layout()
+plt.show()
+
+# num purchases columns list
+num_purchases_cols = ["num_deals_purchases", "num_web_purchases", "num_catalog_purchases", "num_store_purchases"]
+plot = 0
+fig = plt.figure(figsize=(8,8))
+# looping through the length of the list
+for i in range(len(num_purchases_cols)):
+    plot += 1
+    # setting up the subplots
+    ax = plt.subplot(2, 2, plot)
+    # scatterplot of of num purchases vs. age
+    sns.boxplot(x=marketing_data["age_group"], y= marketing_data[num_purchases_cols[i]],
+                order=["18 to 35", "36 to 50", "51 to 70", "71 and Older"])
+    plt.title("Purchase Behavior by age")
+
+plt.tight_layout()
+plt.show()
